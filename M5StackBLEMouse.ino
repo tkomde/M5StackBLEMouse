@@ -8,8 +8,10 @@
 #include "sdkconfig.h"
 
 static BLEHIDDevice* hid;
-BLECharacteristic* input;
-BLECharacteristic* output;
+BLECharacteristic* input2;
+BLECharacteristic* output2;
+BLECharacteristic* input1;
+BLECharacteristic* output1;
 bool isConnected = false;
 
 //to handle single...triple click
@@ -56,9 +58,13 @@ void DisplayGuide() {
 
 class MyCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer){
-    BLE2902* desc;
-    desc = (BLE2902*) input->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
-    desc->setNotifications(true);
+    BLE2902* desc2;
+    desc2 = (BLE2902*) input2->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
+    desc2->setNotifications(true);
+    BLE2902* desc1;
+    desc1 = (BLE2902*) input1->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
+    desc1->setNotifications(true);
+
     isConnected = true;
     DisplayConnectionText();
     DisplayStatusText("Connecting process completed.");
@@ -79,8 +85,10 @@ void StartBLEServer() {
   //Instantiate hid device
   hid = new BLEHIDDevice(pServer);
 
-  input = hid->inputReport(1); // <-- input REPORTID from report map
-  output = hid->outputReport(1); // <-- output REPORTID from report map
+  input2 = hid->inputReport(2); // <-- input REPORTID from report map
+  output2 = hid->outputReport(2); // <-- output REPORTID from report map
+  input1 = hid->inputReport(1); // <-- input REPORTID from report map
+  output1 = hid->outputReport(1); // <-- output REPORTID from report map
 
   //set server callbacks
   pServer->setCallbacks(new MyCallbacks());
@@ -108,41 +116,51 @@ void StartBLEServer() {
    * Mouse
    */
   const uint8_t reportMap[] = {
-    0x05, 0x01,  // Usage Page (Generic Desktop)
-    0x09, 0x02,  // Usage (Mouse)
-    0xA1, 0x01,  // Collection (Application)
-    //Omitting report id allows you to operate on iPadOS.
-    //0x85, 0x01,  // Report Id (1)
-    0x09, 0x01,  //   Usage (Pointer)
-    0xA1, 0x00,  //   Collection (Physical)
-    0x05, 0x09,  //     Usage Page (Buttons)
-    0x19, 0x01,  //     Usage Minimum (01) - Button 1
-    0x29, 0x03,  //     Usage Maximum (03) - Button 3
-    0x15, 0x00,  //     Logical Minimum (0)
-    0x25, 0x01,  //     Logical Maximum (1)
-    0x75, 0x01,  //     Report Size (1)
-    0x95, 0x03,  //     Report Count (3)
-    0x81, 0x02,  //     Input (Data, Variable, Absolute) - Button states
-    0x75, 0x05,  //     Report Size (5)
-    0x95, 0x01,  //     Report Count (1)
-    0x81, 0x01,  //     Input (Constant) - Padding or Reserved bits
-    0x05, 0x01,  //     Usage Page (Generic Desktop)
-    0x09, 0x30,  //     Usage (X)
-    0x09, 0x31,  //     Usage (Y)
-    0x16, 0x01, 0xF8,// Logical Minimum (-2047)
-    0x26, 0xFF, 0x07,// Logical Maximum (2047)
-    0x75, 0x0c,  //     Report Size (12)
-    0x95, 0x02,  //     Report Count (2)
-    0x81, 0x06,  //     Input (Data, Variable, Relative) - X & Y coordinate
-    0x05, 0x01,  //     Usage Page (Generic Desktop)
-    0x09, 0x38,  //     Usage (Wheel)
-    0x15, 0x81,  //     Logical Minimum (-127)
-    0x25, 0x7F,  //     Logical Maximum (127)
-    0x75, 0x08,  //     Report Size (8)
-    0x95, 0x01,  //     Report Count (1)
-    0x81, 0x06,  //     Input (Data, Variable, Relative) - X & Y coordinate
-    0xC0,        //   End Collection
-    0xC0        // End Collection
+
+    // Mouse descriptor
+    0x05, 0x01,                     // Usage Page (Generic Desktop)
+    0x09, 0x02,                     // Usage (Mouse)
+    0xA1, 0x01,                     // Collection (Application)
+    
+    // Report ID 1: Mouse motion
+    0x85, 0x01,                     //      Report ID (MOUSE_XY_IN_REP_ID)
+    0x09, 0x01,                     //      Usage (Pointer)
+    0xA1, 0x00,                     //      Collection (Physical)
+    0x75, 0x0C,                     //          Report Size (12)
+    0x95, 0x02,                     //          Report Count (2)
+    0x05, 0x01,                     //          Usage Page (Generic Desktop)
+    0x09, 0x30,                     //          Usage (X)
+    0x09, 0x31,                     //          Usage (Y)
+    0x16, 0x01, 0xF8,               //          Logical maximum (2047)
+    0x26, 0xFF, 0x07,               //          Logical minimum (-2047)
+    0x81, 0x06,                     //          Input (Data, Variable, Relative)
+    0xC0,                           //      End Collection (Physical)
+
+    // Report ID 2: Mouse buttons + scroll/pan
+    0x85, 0x02,                     //      Report ID (MOUSE_BTN_IN_REP_ID)
+    0x09, 0x01,                     //      Usage (Pointer)
+    0xA1, 0x00,                     //      Collection (Physical)
+    0x95, 0x05,                     //          Report Count (5)
+    0x75, 0x01,                     //          Report Size (1)
+    0x05, 0x09,                     //          Usage Page (Buttons)
+    0x19, 0x01,                     //          Usage Minimum (01)
+    0x29, 0x05,                     //          Usage Maximum (05)
+    0x15, 0x00,                     //          Logical Minimum (0)
+    0x25, 0x01,                     //          Logical Maximum (1)
+    0x81, 0x02,                     //          Input (Data, Variable, Absolute)
+    0x95, 0x01,                     //          Report Count (1)
+    0x75, 0x03,                     //          Report Size (3)
+    0x81, 0x01,                     //          Input (Constant) for padding
+    0x75, 0x08,                     //          Report Size (8)
+    0x95, 0x01,                     //          Report Count (1)
+    0x05, 0x01,                     //          Usage Page (Generic Desktop)
+    0x09, 0x38,                     //          Usage (Wheel)
+    0x15, 0x81,                     //          Logical Minimum (-127)
+    0x25, 0x7F,                     //          Logical Maximum (127)
+    0x81, 0x06,                     //          Input (Data, Variable, Relative)
+    0xC0,                           //      End Collection (Physical)
+    
+    0xC0,                           // End Collection (Application)
   };
   
   /*
@@ -186,12 +204,12 @@ void setup() {
 }
 
 void MouseClick(unsigned char button) {
-  uint8_t a[] = {button,0x0,0x0,0x0,0x0};
-  input->setValue(a, sizeof(a));
-  input->notify();
-  uint8_t b[] = {0x0,0x0,0x0,0x0,0x0};
-  input->setValue(b, sizeof(b));
-  input->notify();   
+  uint8_t a[] = {button,0x0};
+  input2->setValue(a, sizeof(a));
+  input2->notify();
+  uint8_t b[] = {0x0,0x0};
+  input2->setValue(b, sizeof(b));
+  input2->notify();   
 }
 
 void MouseMove(short xRaw, short yRaw){
@@ -200,13 +218,13 @@ void MouseMove(short xRaw, short yRaw){
   unsigned int yDiff = (yRaw ^ 0xfff + 1) & 0xfff;
 
   //set report value 
-  uint8_t a[] = {0x0,0x0,0x0,0x0,0x0};        
-  a[1] = (unsigned char)(xDiff & 0x0ff);
-  a[2] = (unsigned char)((yDiff & 0x00f) * 16 + (xDiff >> 8));
-  a[3] = (unsigned char)(yDiff >> 4);
+  uint8_t a[] = {0x0,0x0,0x0};        
+  a[0] = (unsigned char)(xDiff & 0x0ff);
+  a[1] = (unsigned char)((yDiff & 0x00f) * 16 + (xDiff >> 8));
+  a[2] = (unsigned char)(yDiff >> 4);
 
-  input->setValue(a,sizeof(a));
-  input->notify();
+  input1->setValue(a,sizeof(a));
+  input1->notify();
 }
 
 void loop() {
