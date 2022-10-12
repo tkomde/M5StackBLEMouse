@@ -16,7 +16,9 @@ bool isConnected = false;
 
 //to handle single...triple click
 unsigned long tsStart = 0;
-unsigned char sequentialCount = 0;
+unsigned char btnAsequentialCount = 0;
+unsigned char btnBsequentialCount = 0;
+unsigned char btnCsequentialCount = 0;
 
 //move mode, 1: Up-Down mode, -1: Right-Left mode.
 char movingMode = -1;
@@ -52,8 +54,12 @@ void DisplayGuide() {
 
   yStart = 210;
   M5.Lcd.drawString("2Clk: Left Click", 10, yStart);
+  M5.Lcd.drawString(" +1", 150, yStart);
+  M5.Lcd.drawString(" -1", 240, yStart);
   yStart = 225;
   M5.Lcd.drawString("3Clk: Right Click", 10, yStart);
+  M5.Lcd.drawString("+10", 150, yStart);
+  M5.Lcd.drawString("-10", 240, yStart);
 }
 
 class MyCallbacks : public BLEServerCallbacks {
@@ -212,6 +218,15 @@ void MouseClick(unsigned char button) {
   input2->notify();   
 }
 
+void MouseScroll(unsigned char wheel) {
+  uint8_t a[] = {0x0, wheel};
+  input2->setValue(a, sizeof(a));
+  input2->notify();
+  uint8_t b[] = {0x0,0x0};
+  input2->setValue(b, sizeof(b));
+  input2->notify();   
+}
+
 void MouseMove(short xRaw, short yRaw){
   //convert 12bit two's complement
   unsigned int xDiff = (xRaw ^ 0xfff + 1) & 0xfff;
@@ -231,41 +246,86 @@ void loop() {
   unsigned long ts = millis();
   if(isConnected && M5.BtnA.wasPressed()) {
     //remember first button push time
-    if(sequentialCount == 0)
+    if(btnAsequentialCount == 0)
     {
       tsStart = ts;
     }
-    sequentialCount++;
+    btnAsequentialCount++;
   }
 
   //time after first button push
-  if(ts - tsStart > 600 && sequentialCount > 0)
+  if(ts - tsStart > 600 && btnAsequentialCount > 0)
   {
-    if(sequentialCount == 1){
+    if(btnAsequentialCount == 1){
       movingMode*= -1;
       DisplayGuide();
     }
-    if(sequentialCount == 2){
+    if(btnAsequentialCount == 2){
       MouseClick(0x1);
     }
-    if(sequentialCount == 3){
+    if(btnAsequentialCount == 3){
       MouseClick(0x2);
     }
 
-    M5.Lcd.drawString("Click status, ts:" + String(tsStart) + ", count:" + String(sequentialCount), 10, 100);
-    sequentialCount = 0;
+    M5.Lcd.drawString("BtnA click status, ts:" + String(tsStart) + ", count:" + String(btnAsequentialCount), 10, 100);
+    btnAsequentialCount = 0;
   }
 
   if(isConnected && M5.BtnB.wasPressed()) {
-    const short xRaw = movingMode == 1 ? 0 : -20;
-    const short yRaw = movingMode == 1 ? -20 : 0;
-    MouseMove(xRaw, yRaw);
+    //remember first button push time
+    if(btnBsequentialCount == 0)
+    {
+      tsStart = ts;
+    }
+    btnBsequentialCount++;
+  }
+
+  //time after first button push
+  if(ts - tsStart > 600 && btnBsequentialCount > 0)
+  {
+    if(btnBsequentialCount == 1){
+      const short xRaw = movingMode == 1 ? 0 : -20;
+      const short yRaw = movingMode == 1 ? -20 : 0;
+      MouseMove(xRaw, yRaw);
+    }
+    if(btnBsequentialCount == 2){
+      MouseScroll(0x1);
+    }
+    if(btnBsequentialCount == 3){
+      MouseScroll(0x0A);
+    }
+
+    M5.Lcd.drawString("BtnB click status, ts:" + String(tsStart) + ", count:" + String(btnBsequentialCount), 10, 100);
+    btnBsequentialCount = 0;
   }
   
   if (isConnected && M5.BtnC.wasPressed()) {
-    const short xRaw = movingMode == 1 ? 0 : 20;
-    const short yRaw = movingMode == 1 ? 20 : 0;
-    MouseMove(xRaw, yRaw);
+    //remember first button push time
+    if(btnCsequentialCount == 0)
+    {
+      tsStart = ts;
+    }
+    btnCsequentialCount++;
+  }
+
+  //time after first button push
+  if(ts - tsStart > 600 && btnCsequentialCount > 0)
+  {
+    if(btnCsequentialCount == 1){
+      const short xRaw = movingMode == 1 ? 0 : 20;
+      const short yRaw = movingMode == 1 ? 20 : 0;
+      MouseMove(xRaw, yRaw);
+    }
+    if(btnCsequentialCount == 2){
+      MouseScroll(0xFF);
+    }
+    if(btnCsequentialCount == 3){
+      MouseScroll(0xF6);
+    }
+
+    M5.Lcd.drawString("BtnC click status, ts:" + String(tsStart) + ", count:" + String(btnCsequentialCount), 10, 100);
+    btnCsequentialCount = 0;
+
   }
 
   //update button information
